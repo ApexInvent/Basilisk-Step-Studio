@@ -14,6 +14,7 @@
 import { buildConvertArgs, buildMeshArgs, formatCommand } from './command.js'
 import { ENGINE_TRUEFORM } from './options.js'
 import { updatesUnavailable } from './updates.js'
+import { downloadText } from '@/utils/download.js'
 
 const PHASES = [
   { at: 0.0, text: 'Reading mesh' },
@@ -226,6 +227,13 @@ export class MockEngine {
   async pickInputFiles() {
     // A browser cannot open a native dialog, and the drop zone covers this case in dev.
     throw new Error('File picker is a desktop feature. Drag files onto the drop zone instead.')
+  }
+
+  /**
+   * Save a generated text file. In a browser that means a download.
+   */
+  async saveTextFile(name, text) {
+    return downloadText(name, text)
   }
 
   async pickDirectory() {

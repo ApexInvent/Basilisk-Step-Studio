@@ -10,7 +10,7 @@
  */
 
 import { invoke, Channel } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { buildConvertArgs } from './command.js'
 import { ENGINE_FEED, isNewer } from './updates.js'
@@ -156,6 +156,26 @@ export class TauriEngine {
   async readFile(path) {
     const bytes = await invoke('read_file', { path })
     return new Uint8Array(bytes).buffer
+  }
+
+  /**
+   * Save a generated text file where the user asks for it.
+   *
+   * A webview is not a browser tab. The blob and synthetic link trick that works on the web
+   * either does nothing here or hands the file to the webview's own download machinery,
+   * which puts it somewhere the user never chose. A save dialog is the honest equivalent.
+   *
+   * Returns the chosen path, or null if the dialog was dismissed.
+   */
+  async saveTextFile(name, text) {
+    const extension = name.split('.').pop()
+    const path = await save({
+      defaultPath: name,
+      filters: [{ name: extension.toUpperCase(), extensions: [extension] }]
+    })
+    if (!path) return null
+    await invoke('write_text_file', { path, contents: text })
+    return path
   }
 
   async pickInputFiles() {

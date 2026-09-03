@@ -1,11 +1,31 @@
 <script setup>
+import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useJobsStore } from '@/stores/jobs'
 import { useOptionsStore } from '@/stores/options'
+import { useEngine, isDesktop } from '@/engine'
 
 const jobs = useJobsStore()
 const options = useOptionsStore()
 const { outputMode, outputDir, concurrency, stopOnError } = storeToRefs(jobs)
+
+const browseError = ref(null)
+
+/**
+ * Only the desktop build can raise a folder picker. In a browser the field stays what it has
+ * always been, a path typed by hand, because there is no dialog to open.
+ */
+const canBrowse = isDesktop()
+
+async function browse() {
+  browseError.value = null
+  try {
+    const dir = await useEngine().pickDirectory()
+    if (dir) outputDir.value = dir
+  } catch (err) {
+    browseError.value = err?.message ?? String(err)
+  }
+}
 </script>
 
 <template>
@@ -32,7 +52,17 @@ const { outputMode, outputDir, concurrency, stopOnError } = storeToRefs(jobs)
 
         <div v-if="outputMode === 'directory'">
           <label class="field-label">Output folder</label>
-          <input v-model="outputDir" class="field font-mono text-xs" placeholder="C:\Parts\step" />
+          <div class="flex gap-2">
+            <input
+              v-model="outputDir"
+              class="field min-w-0 flex-1 font-mono text-xs"
+              placeholder="C:\Parts\step"
+            />
+            <button v-if="canBrowse" type="button" class="btn-ghost shrink-0" @click="browse">
+              Browse
+            </button>
+          </div>
+          <p v-if="browseError" class="mt-1.5 text-[11px] text-state-fail">{{ browseError }}</p>
         </div>
       </div>
     </div>

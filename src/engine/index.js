@@ -13,13 +13,20 @@
  *
  *   detect()                        -> EngineInfo
  *   convert(request, handlers)      -> Result        (the RESULT json)
- *   mesh(request, handlers)         -> MeshResult    (the MESH_RESULT json)
+ *   preview(stepPath)               -> { mesh, edges }
  *   readFile(path)                  -> ArrayBuffer
- *   readEdges(path)                 -> ArrayBuffer
  *   pickInputFiles()                -> string[]
  *   pickDirectory()                 -> string | null
  *   revealInFolder(path)            -> void
+ *   saveTextFile(name, text)        -> string | null  (where it went, null if cancelled)
  *   cancel(jobId)                   -> void
+ *
+ * Optionally, checked for before it is called:
+ *
+ *   save(outputPath, name)          -> void
+ *
+ * Only the helper implements save, because it is the one arrangement where the result lands
+ * somewhere the user did not choose: a browser drop has no path to write the STEP beside.
  *
  * And, where the engine is something this build is allowed to replace:
  *

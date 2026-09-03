@@ -34,9 +34,17 @@ const stats = ref(null)
 const loading = ref(false)
 const failure = ref(null)
 
-/** Anything with geometry to show: a converted result, or a file still waiting to run. */
+/**
+ * Anything with geometry to show: a converted result, or a file still waiting to run.
+ *
+ * Both ways of reaching that input count. A browser drop carries the file in memory, while
+ * the desktop app has a real path and asks the shell to read it. Testing only for the in
+ * memory copy left the desktop viewer permanently empty, because there is never one there.
+ */
 const viewable = computed(() =>
-  queue.value.filter((j) => ['ok', 'warning'].includes(j.status) || j.file)
+  queue.value.filter(
+    (j) => ['ok', 'warning'].includes(j.status) || Boolean(j.file) || Boolean(j.inputPath)
+  )
 )
 
 const selected = computed(() => queue.value.find((j) => j.id === selectedId.value) ?? null)

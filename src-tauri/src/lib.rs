@@ -356,6 +356,15 @@ async fn read_file(path: String) -> Result<Vec<u8>, String> {
     std::fs::read(&path).map_err(|e| e.to_string())
 }
 
+/// Write a text file the user has already chosen a location for.
+///
+/// Only reached after the save dialog has returned a path, so the choice of where to write
+/// is the user's rather than this app's. Used for exporting a command as a batch script.
+#[tauri::command]
+async fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    std::fs::write(&path, contents).map_err(|e| format!("Could not write that file: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -370,6 +379,7 @@ pub fn run() {
             cancel,
             preview,
             read_file,
+            write_text_file,
             update::engine_manifest,
             update::engine_install,
             update::engine_remove

@@ -9,6 +9,7 @@
 
 import { buildConvertArgs, buildMeshArgs } from './command.js'
 import { updatesUnavailable } from './updates.js'
+import { downloadText } from '@/utils/download.js'
 
 /**
  * Progress, inferred from what the engine prints.
@@ -300,6 +301,13 @@ export class HttpEngine {
 
   async pickInputFiles() {
     throw new Error('Drag files onto the drop zone. A native picker needs the desktop build.')
+  }
+
+  /**
+   * Save a generated text file. In a browser that means a download.
+   */
+  async saveTextFile(name, text) {
+    return downloadText(name, text)
   }
 
   async pickDirectory() {

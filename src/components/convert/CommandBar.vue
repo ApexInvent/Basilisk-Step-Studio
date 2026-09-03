@@ -16,11 +16,15 @@ import { storeToRefs } from 'pinia'
 import AppIcon from '@/components/shell/AppIcon.vue'
 import { useOptionsStore } from '@/stores/options'
 import { toBatchScript } from '@/engine/command'
+import { useEngine } from '@/engine'
 
 const store = useOptionsStore()
 const { previewCommand, summary } = storeToRefs(store)
 
 const mode = ref('preview') // 'preview' or 'paste'
+const exporting = ref(false)
+const exported = ref(false)
+const exportError = ref(null)
 const pasted = ref('')
 const report = ref(null)
 const copied = ref(false)
@@ -49,14 +53,28 @@ function applyPasted() {
   }
 }
 
-function exportBat() {
-  const blob = new Blob([toBatchScript(store.options)], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'convert.bat'
-  a.click()
-  URL.revokeObjectURL(url)
+/**
+ * Hand over the script.
+ *
+ * Where it goes is the adapter's business: a download in the browser, a save dialog in the
+ * app. Doing it here would mean this component knowing which build it is running in, which
+ * is exactly the assumption that left the desktop viewer blank.
+ */
+async function exportBat() {
+  exporting.value = true
+  try {
+    const saved = await useEngine().saveTextFile('convert.bat', toBatchScript(store.options))
+    // Null means the save dialog was dismissed, which is not worth reporting back.
+    if (saved) {
+      exported.value = true
+      setTimeout(() => (exported.value = false), 2400)
+    }
+  } catch (err) {
+    exportError.value = err?.message ?? String(err)
+    setTimeout(() => (exportError.value = null), 5000)
+  } finally {
+    exporting.value = false
+  }
 }
 </script>
 
@@ -77,8 +95,15 @@ function exportBat() {
         >
           Paste a command
         </button>
-        <button type="button" class="btn-quiet" title="Save as a .bat script" @click="exportBat">
-          <AppIcon name="download" :size="14" />
+        <button
+          type="button"
+          class="btn-quiet"
+          :class="{ 'text-state-ok': exported }"
+          title="Save as a .bat script"
+          :disabled="exporting"
+          @click="exportBat"
+        >
+          <AppIcon :name="exported ? 'check' : 'download'" :size="14" />
         </button>
         <button type="button" class="btn-quiet" :class="{ 'text-state-ok': copied }" @click="copy">
           <AppIcon :name="copied ? 'check' : 'copy'" :size="14" />
@@ -92,6 +117,10 @@ function exportBat() {
 
         <p class="mt-2 text-[11px] leading-relaxed text-white/35">
           Paths shown are placeholders. Each queued file is run with its own input and output.
+        </p>
+
+        <p v-if="exportError" class="mt-2 text-[11px] leading-relaxed text-state-fail">
+          {{ exportError }}
         </p>
 
         <div v-if="summary.length" class="mt-2 flex flex-wrap gap-1">

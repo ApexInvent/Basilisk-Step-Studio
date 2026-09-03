@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "dialog:allow-open",
+    "dialog:allow-save",
     "opener:allow-reveal-item-in-dir",
     "updater:default",
     "process:allow-restart"

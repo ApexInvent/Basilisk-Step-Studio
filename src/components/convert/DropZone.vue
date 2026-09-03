@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AppIcon from '@/components/shell/AppIcon.vue'
 import { useJobsStore } from '@/stores/jobs'
 import { useEngine, isDesktop } from '@/engine'
@@ -38,12 +38,50 @@ function accept(items) {
   setTimeout(() => (message.value = null), 4000)
 }
 
+/**
+ * A drop in the browser, where the file arrives in memory.
+ *
+ * The desktop app never reaches this. Tauri intercepts file drops at the window before the
+ * page sees them, so the handler below is what serves the installed app.
+ */
 function onDrop(event) {
   depth = 0
   dragging.value = false
   const files = Array.from(event.dataTransfer?.files ?? [])
   if (files.length) accept(files)
 }
+
+/**
+ * A drop in the desktop app.
+ *
+ * Tauri reports these itself, with real paths attached, which is the reason the installed
+ * app can convert a dropped file where it lies instead of copying it anywhere first. Without
+ * this listener the drop zone is decorative in the app: the invitation to drop a file is
+ * right there on the main screen and nothing happens.
+ *
+ * The event covers the whole window rather than this element. For a converter whose main
+ * screen is one big drop target, accepting a file dropped anywhere is the kinder behaviour,
+ * and it avoids comparing Tauri's physical cursor position against CSS pixel bounds, which
+ * disagree the moment display scaling is not 100 per cent.
+ */
+let stopListening = null
+
+onMounted(async () => {
+  if (!isDesktop()) return
+  const { getCurrentWebview } = await import('@tauri-apps/api/webview')
+  stopListening = await getCurrentWebview().onDragDropEvent(({ payload }) => {
+    // enter and over both mean a file is being held over the window. Treating enter as
+    // anything else flickers the highlight off the moment the pointer arrives.
+    if (payload.type === 'enter' || payload.type === 'over') {
+      dragging.value = true
+      return
+    }
+    dragging.value = false
+    if (payload.type === 'drop' && payload.paths?.length) accept(payload.paths)
+  })
+})
+
+onUnmounted(() => stopListening?.())
 
 function onDragEnter() {
   depth++

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AppIcon from '@/components/shell/AppIcon.vue'
 import { useJobsStore } from '@/stores/jobs'
+import { useEngine, isDesktop } from '@/engine'
 
 const props = defineProps({
   job: { type: Object, required: true },
@@ -22,6 +23,25 @@ const STATUS = {
 
 const status = computed(() => STATUS[props.job.status] ?? STATUS.queued)
 const result = computed(() => props.job.result)
+
+/**
+ * Jumping to the file only makes sense where the file is somewhere the user can be sent.
+ *
+ * In the app the STEP is written beside the input, at a path they chose. Running from source
+ * a browser drop lands in the helper's working directory, which is a temporary folder, so
+ * that build offers Save instead and this stays hidden.
+ */
+const canReveal = computed(
+  () => isDesktop() && Boolean(props.job.result?.ok) && Boolean(props.job.outputPath)
+)
+
+async function reveal() {
+  try {
+    await useEngine().revealInFolder(props.job.outputPath)
+  } catch {
+    // Explorer refusing to open is not worth a dialog. The path is on the expanded row.
+  }
+}
 
 const elapsed = computed(() => {
   const j = props.job
@@ -138,6 +158,15 @@ const canRetry = computed(() => ['ok', 'warning', 'failed', 'cancelled'].include
           @click="jobs.save(job.id)"
         >
           <AppIcon name="download" :size="14" />
+        </button>
+        <button
+          v-if="canReveal"
+          type="button"
+          class="btn-quiet"
+          title="Show the STEP file in Explorer"
+          @click="reveal"
+        >
+          <AppIcon name="folder" :size="14" />
         </button>
         <button
           v-if="result?.ok"
