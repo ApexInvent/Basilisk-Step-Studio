@@ -32,7 +32,7 @@ The app keeps itself up to date, and the engine updates separately from the Engi
 
 **TrueForm** takes longer because it tries to recover cylinders, planes and other analytic surfaces from the mesh. The result is much closer to what you would expect from native CAD geometry.
 
-![Verbatim and True Form](images/sidebar%2options.png)
+![Verbatim and True Form](images/sidebar%20options.png)
 
 ### Batch conversion
 
