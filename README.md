@@ -22,7 +22,7 @@ Drop STL files onto the window and press **Convert**. STEP files are written nex
 
 The app keeps itself up to date, and the engine updates separately from the Engine screen.
 
-![Installer](images/Isntaller.png)
+![Installer](images/Installer.png)
 
 ---
 
