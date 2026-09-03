@@ -1,112 +1,104 @@
-# Third party notices
+# Third-party notices
 
-Basilisk Step Studio is licensed under the GNU General Public License v3, in [LICENSE](LICENSE).
-This file covers the other people's work that it is built on and, in the case of the installer,
-redistributes.
+Basilisk Step Studio is licensed under the GNU General Public License v3 or later. See
+[LICENSE](LICENSE).
 
-Everything below is a record of what ships and under what terms. It is not legal advice. If
-this is ever sold, or bundled into something else that is, the combination is worth a proper
-review, particularly the OpenCASCADE and FreeImage terms.
+This file lists third-party software distributed with it. Licence texts are in
+[`licenses/`](licenses/) and in `engine/licenses/` for the components that ship with the
+engine. All third-party components are redistributed unmodified.
 
----
-
-## The converter
-
-**stl2step**, by BlinkingSun. MIT.
-<https://github.com/BlinkingSun/stl2step>
-
-All STL to STEP conversion is performed by stl2step. Basilisk Step Studio provides the Windows
-interface around it and does no geometry work of its own.
-
-The installer bundles a Windows build of stl2step compiled from upstream source at tag `v1.2.0`
-against OpenCASCADE 7.9.3. The workflow that produces it is in
-[.github/workflows/engine.yml](.github/workflows/engine.yml), so the build is reproducible from
-this repository.
+This software makes use of facilities provided by Open CASCADE Technology.
 
 ---
 
-## The geometry kernel
+## stl2step
 
-**Open CASCADE Technology 7.9.3.** GNU Lesser General Public License version 2.1, with the
-Open CASCADE exception.
-<https://dev.opencascade.org/> and <https://github.com/Open-Cascade-SAS/OCCT>
+    Version      v1.2.0
+    Licence      MIT
+    Source       https://github.com/BlinkingSun/stl2step
+    Text         licenses/stl2step-MIT.txt
+    Files        engine/stl2step.exe
 
-This is the one that carries real obligations, because **the installer redistributes it**.
-Twenty four `TK*.dll` files, roughly 47 MB, are included so the engine runs on a machine with
-nothing else installed. Upstream stl2step does not bundle OCCT and notes that distributors of
-linked binaries should review its licence. That note applies to this project.
-
-The OCCT libraries are dynamically linked and shipped as separate DLL files beside the
-executable, so they can be replaced with another build of the same version. Source for the
-exact version used is available from the OpenCASCADE project at the addresses above.
-
-The binaries are the prebuilt conda-forge `occt 7.9.3 novtk` package, not a modified build. No
-changes were made to OpenCASCADE.
+Compiled from upstream source against Open CASCADE Technology 7.9.3 by
+[.github/workflows/engine.yml](.github/workflows/engine.yml).
 
 ---
 
-## Libraries OpenCASCADE depends on
+## Open CASCADE Technology
 
-These ship alongside the kernel because it will not start without them. All are redistributed
-unmodified.
+    Version      7.9.3
+    Licence      GNU LGPL v2.1, with the Open CASCADE exception version 1.0
+    Copyright    Copyright (c) OPEN CASCADE SAS
+    Source       https://github.com/Open-Cascade-SAS/OCCT
+    Binaries     conda-forge package occt 7.9.3 novtk
+    Text         licenses/LGPL-2.1.txt, licenses/OCCT-exception.txt
+    Files        engine/TK*.dll (24 files)
 
-| Library | Licence |
-| --- | --- |
-| FreeImage | FreeImage Public License, or GPL v2, or GPL v3 |
-| OpenEXR, Imath, Iex, IlmThread | BSD 3-Clause |
-| LibRaw (`raw.dll`) | LGPL 2.1, or CDDL 1.0, or the LibRaw Software License |
-| FreeType | FreeType License, or GPL v2 |
-| libtiff | libtiff (BSD style) |
-| libpng | PNG Reference Library License |
-| libjpeg-turbo (`jpeg8.dll`) | BSD 3-Clause and IJG |
-| libwebp, libsharpyuv, libwebpmux | BSD 3-Clause |
-| OpenJPEG (`openjp2.dll`) | BSD 2-Clause |
-| OpenJPH | BSD 2-Clause |
-| Little CMS (`lcms2.dll`) | MIT |
-| zlib, deflate | zlib licence |
-| Zstandard | BSD 3-Clause, or GPL v2 |
-| xz (`liblzma.dll`) | 0BSD and public domain |
-| LERC | Apache 2.0 |
+The libraries are dynamically linked and distributed as separate DLL files beside the
+executable, so they may be replaced with another build of the same version. Corresponding
+source for version 7.9.3 is available from the address above.
 
-FreeImage and Zstandard are dual licensed with a GPL option, and LibRaw offers LGPL 2.1, so
-each can be taken under terms compatible with this project's GPL v3.
+---
+
+## Libraries distributed with Open CASCADE Technology
+
+Required at runtime by the kernel. Licence texts for each are in `engine/licenses/`, harvested
+from the upstream packages at build time.
+
+| Component | Files | Licence |
+| --- | --- | --- |
+| FreeImage | `FreeImage.dll` | FreeImage Public License, or GPL v2, or GPL v3 |
+| OpenEXR | `OpenEXR.dll`, `OpenEXRCore.dll`, `Iex.dll`, `IlmThread.dll` | BSD 3-Clause |
+| Imath | `Imath.dll` | BSD 3-Clause |
+| LibRaw | `raw.dll` | LGPL v2.1, or CDDL v1.0, or the LibRaw Software License |
+| FreeType | `freetype.dll` | FreeType License, or GPL v2 |
+| libtiff | `tiff.dll` | libtiff licence |
+| libpng | `libpng16.dll` | PNG Reference Library License |
+| libjpeg-turbo | `jpeg8.dll` | BSD 3-Clause, IJG |
+| libwebp | `libwebp.dll`, `libwebpmux.dll`, `libsharpyuv.dll` | BSD 3-Clause |
+| OpenJPEG | `openjp2.dll` | BSD 2-Clause |
+| OpenJPH | `openjph.dll` | BSD 2-Clause |
+| Little CMS | `lcms2.dll` | MIT |
+| zlib | `zlib.dll`, `deflate.dll` | zlib licence |
+| Zstandard | `zstd.dll` | BSD 3-Clause, or GPL v2 |
+| xz | `liblzma.dll` | 0BSD, public domain |
+| LERC | `Lerc.dll` | Apache License 2.0 |
 
 ---
 
 ## Microsoft Visual C++ runtime
 
-`MSVCP140.dll`, `VCRUNTIME140.dll`, `VCRUNTIME140_1.dll` and the `api-ms-win-crt-*` files are
-Microsoft redistributables, included so the engine runs without a separate runtime install.
-They are covered by the Visual Studio distributable licence terms and are System Libraries
-within the meaning of section 1 of the GPL v3.
+    Licence      Microsoft Visual Studio distributable licence terms
+    Files        MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll,
+                 api-ms-win-crt-*.dll (11 files)
+
+Distributed under the Visual Studio redistributable terms. These are System Libraries within
+the meaning of section 1 of the GNU General Public License v3.
 
 ---
 
-## The interface
+## Application dependencies
 
-Compiled into the application bundle:
+Compiled into the application bundle.
 
-| Dependency | Licence |
+| Component | Licence |
 | --- | --- |
 | Vue | MIT |
 | Vue Router | MIT |
 | Pinia | MIT |
 | three.js | MIT |
-| Tauri, and its API and plugin packages | Apache 2.0, or MIT |
-| Oswald, Figtree and IBM Plex Mono, via Fontsource | SIL Open Font License 1.1 |
+| Tauri, and its API and plugin packages | Apache License 2.0, or MIT |
+| Oswald | SIL Open Font License 1.1 |
+| Figtree | SIL Open Font License 1.1 |
+| IBM Plex Mono | SIL Open Font License 1.1 |
 
-The Rust dependencies of the desktop shell are predominantly MIT or Apache 2.0. The full set,
-pinned, is in [src-tauri/Cargo.lock](src-tauri/Cargo.lock), and the JavaScript set is in
-[package-lock.json](package-lock.json).
-
-The three typefaces are redistributed under the SIL Open Font License, which permits bundling
-and requires that the licence travel with the fonts. Their licence files are included in the
-Fontsource packages.
+The complete pinned dependency sets are in [package-lock.json](package-lock.json) and
+[src-tauri/Cargo.lock](src-tauri/Cargo.lock). Rust dependencies are predominantly MIT or
+Apache License 2.0.
 
 ---
 
-## The logo
+## Trademarks
 
-The Basilisk Step Studio name, logo and icon are trademarks of Apex Invent and are not covered
-by the GPL grant on the source. Forks are free to use the code and should use their own name
-and mark.
+The Basilisk Step Studio name, logo and icon are trademarks of Apex Invent and are not
+licensed under the GNU General Public License v3 grant covering the source code.

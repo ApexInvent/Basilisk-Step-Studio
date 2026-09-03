@@ -58,7 +58,8 @@
     "resources": {
       "../engine": "engine",
       "../LICENSE": "LICENSE",
-      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
+      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md",
+      "../licenses": "licenses"
     },
     "windows": {
       "nsis": {

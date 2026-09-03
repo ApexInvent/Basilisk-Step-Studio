@@ -218,6 +218,37 @@ jobs:
           Remove-Item tetra.stl, tetra.step
           Pop-Location
 
+      # Several of the redistributed libraries are BSD or MIT, which require the copyright
+      # notice and licence text to travel with a binary distribution. Naming the licence is
+      # not enough. Conda packages carry their own licence files, so they are harvested here
+      # rather than maintained by hand, which would drift the moment a dependency changes.
+      - name: Collect the licences of everything being redistributed
+        shell: bash -el {0}
+        run: |
+          set -euo pipefail
+          mkdir -p stage/licenses
+
+          for meta in "$CONDA_PREFIX"/conda-meta/*.json; do
+            [ -f "$meta" ] || continue
+            pkg="$(basename "$meta" .json)"
+            dir="$(python -c "import json,sys; print(json.load(open(sys.argv[1])).get('extracted_package_dir',''))" "$meta")"
+            if [ -n "$dir" ] && [ -d "$dir/info/licenses" ]; then
+              mkdir -p "stage/licenses/$pkg"
+              cp -r "$dir/info/licenses/." "stage/licenses/$pkg/" 2>/dev/null || true
+            fi
+          done
+
+          # The kernel is the one with real redistribution conditions, so fail rather than
+          # ship without it.
+          if ! ls -d stage/licenses/occt-* >/dev/null 2>&1; then
+            echo "No licence files were collected for OpenCASCADE"
+            ls stage/licenses || true
+            exit 1
+          fi
+
+          echo "Collected licences for $(ls stage/licenses | wc -l) packages:"
+          ls stage/licenses
+
       - name: Record what was built
         shell: bash -el {0}
         run: |
