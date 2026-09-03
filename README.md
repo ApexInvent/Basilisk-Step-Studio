@@ -38,7 +38,9 @@ The app keeps itself up to date, and the engine updates separately from the Engi
 
 Files can be queued and converted one after another, for the cases where thirty or forty parts need converting and running the same command per file is not practical. A failed conversion is marked and the queue continues.
 
-![Batch Conversion](images/queue.png)
+<p align="center">
+  <img src="images/queue.png" width="40%">
+</p>
 
 ### 3D viewer
 
