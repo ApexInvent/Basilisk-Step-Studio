@@ -46,6 +46,8 @@ Files can be queued and converted one after another, for the cases where thirty 
 
 The viewer shows both the STL going in and the converted result. For STEP results the engine's B-Rep edges are drawn over the shaded model, which is what separates a recovered analytic surface from a re-triangulated one.
 
+![3D Viewer](images/viewer.png)
+
 ### Command line preview
 
 The generated stl2step command is always visible, and changing an option updates it immediately. It also works in reverse: paste an existing stl2step command into the interface and the options are filled in from it. Commands can be exported as `.bat` files.
