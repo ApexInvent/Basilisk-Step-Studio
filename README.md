@@ -5,6 +5,11 @@ A Windows interface for [stl2step](https://github.com/BlinkingSun/stl2step), a t
 stl2step handles the conversion well, but it is a command-line tool with a fairly large set of options, and the upstream desktop app is currently macOS-only. Basilisk Step Studio provides the Windows interface: a batch queue, a 3D viewer for checking results, and a visible command line.
 
 ![App Screenshots](images/App%201.jpg)
+
+---
+
+![App Screenshots](images/App%202.jpg)
+
 ---
 
 ## Install
