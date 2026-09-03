@@ -63,6 +63,8 @@ export class TauriEngine {
   async checkEngineUpdate(current) {
     try {
       const manifest = await invoke('engine_manifest', { url: ENGINE_FEED })
+      // Null means the feed is not published yet, which is a normal answer rather than a fault.
+      if (!manifest) return { supported: true, manifest: null, available: false }
       return {
         supported: true,
         manifest,

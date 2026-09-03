@@ -26,6 +26,18 @@ on:
         type: boolean
         required: false
         default: false
+  # Callable so that cutting a release builds its own engine rather than depending on someone
+  # having remembered to run this first.
+  workflow_call:
+    inputs:
+      stl2step_ref:
+        type: string
+        required: false
+        default: v1.2.0
+      publish_release:
+        type: boolean
+        required: false
+        default: false
 
 env:
   OCCT_VERSION: 7.9.3

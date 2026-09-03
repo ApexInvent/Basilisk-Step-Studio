@@ -1,0 +1,140 @@
+# Cut a release. One button, start to finish.
+#
+# Type a version, press run. It builds the engine from the pinned upstream ref, sets that
+# version everywhere it appears, tags it, builds the signed installer with the engine inside,
+# and publishes both update feeds.
+#
+# It builds the engine every time rather than reusing whatever was published last. That costs
+# a few minutes on a public repository, where Actions are free, and buys the guarantee that a
+# release and its engine were built from the refs this workflow was given. The alternative was
+# a documented order of operations, which is the kind of thing that works until the once it
+# does not.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, without the v (for example 0.2.0)
+        required: true
+      stl2step_ref:
+        description: Upstream engine tag to build against
+        required: false
+        default: v1.2.0
+      draft:
+        description: Publish as a draft so it can be reviewed first
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  engine:
+    uses: ./.github/workflows/engine.yml
+    with:
+      stl2step_ref: ${{ inputs.stl2step_ref }}
+      publish_release: true
+    permissions:
+      contents: write
+
+  app:
+    needs: engine
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check the version looks like a version
+        shell: bash
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must be three numbers, for example 0.2.0. Got: ${{ inputs.version }}"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ inputs.version }} already exists"
+            exit 1
+          fi
+
+      # The version lives in three files and an updater that never fires is what a mismatch
+      # looks like, so it is set from one place rather than kept in step by hand.
+      - name: Set the version
+        shell: bash
+        run: |
+          set -euo pipefail
+          V="${{ inputs.version }}"
+
+          node -e "
+            const fs = require('fs');
+            for (const f of ['package.json', 'src-tauri/tauri.conf.json']) {
+              const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+              j.version = '$V';
+              fs.writeFileSync(f, JSON.stringify(j, null, 2) + '\n');
+            }
+          "
+          sed -i "0,/^version = \".*\"/s//version = \"$V\"/" src-tauri/Cargo.toml
+
+          grep -n '"version"' package.json src-tauri/tauri.conf.json | head -4
+          grep -n '^version' src-tauri/Cargo.toml | head -1
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache the Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      # Built by the job above, so this is the engine this release was made with.
+      - name: Fetch the engine
+        shell: bash
+        run: |
+          gh release download engine-latest --pattern stl2step-windows-x64.zip --dir .
+          7z x stl2step-windows-x64.zip -oengine
+          test -f engine/stl2step.exe || { echo "No engine in the archive"; exit 1; }
+          test -d engine/licenses || echo "warning: no licence files came with the engine"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Install
+        run: npm ci
+
+      # Cargo.lock moves with the version, so this has to happen after npm ci and before the
+      # tag, or the tagged tree does not match what was built.
+      - name: Commit and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo update --workspace --manifest-path src-tauri/Cargo.toml --quiet || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+          git commit -m "Release v${{ inputs.version }}"
+          git tag "v${{ inputs.version }}"
+          git push origin HEAD:${{ github.ref_name }}
+          git push origin "v${{ inputs.version }}"
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v${{ inputs.version }}
+          releaseName: Basilisk Step Studio ${{ inputs.version }}
+          releaseDraft: ${{ inputs.draft }}
+          # latest.json is what an installed copy polls. Without it there is no app updater.
+          includeUpdaterJson: true

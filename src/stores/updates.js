@@ -34,6 +34,8 @@ export const useUpdatesStore = defineStore('updates', () => {
   const appChecked = ref(false)
   const appAvailable = ref(null)
   const appProgress = ref(null)
+  /** Not an error: no release has been published for the app to compare itself against. */
+  const appUnpublished = ref(false)
 
   /** Held outside the reactive state: it is a plugin object, not something to render. */
   let appUpdate = null
@@ -131,6 +133,7 @@ export const useUpdatesStore = defineStore('updates', () => {
     }
     appChecking.value = true
     appError.value = null
+    appUnpublished.value = false
     try {
       const { check } = await import('@tauri-apps/plugin-updater')
       appUpdate = await check()
@@ -140,9 +143,15 @@ export const useUpdatesStore = defineStore('updates', () => {
       appChecked.value = true
     } catch (err) {
       const message = err?.message ?? String(err)
-      // Until a release is published the feed is a 404, and so it is while the repository is
-      // private. That is not a fault worth showing someone a stack trace for.
-      appError.value = /404|not found/i.test(message) ? 'No update feed published yet.' : message
+      // Before the first release there is no latest.json to read, and the plugin reports that
+      // the same way it reports a real network fault. Saying nothing has been published is
+      // both truer and less alarming than showing the raw message.
+      if (/404|not found|could not fetch a valid release/i.test(message)) {
+        appUnpublished.value = true
+        appChecked.value = true
+      } else {
+        appError.value = message
+      }
     } finally {
       appChecking.value = false
     }
@@ -198,6 +207,7 @@ export const useUpdatesStore = defineStore('updates', () => {
     appAvailable,
     appProgress,
     appProgressLabel,
+    appUnpublished,
     checkEngine,
     installEngine,
     removeEngine,

@@ -36,6 +36,7 @@ const {
   appError,
   appChecked,
   appAvailable,
+  appUnpublished,
   appProgressLabel
 } = storeToRefs(updates)
 
@@ -236,7 +237,7 @@ onMounted(() => {
             <template v-if="latest">
               stl2step {{ latest.version }} is the current build, and it is the one in use.
             </template>
-            <template v-else>Nothing published yet.</template>
+            <template v-else>Up to date.</template>
           </p>
 
           <p v-if="engineError" class="mb-3 text-xs leading-relaxed text-state-warn">
@@ -305,8 +306,11 @@ onMounted(() => {
             </p>
           </div>
 
-          <p v-else-if="appChecked && !appError" class="mb-3 text-xs text-white/40">
-            This is the current version.
+          <!-- Nothing newer to be had and nothing newer published read the same way from
+               here: you have the current version. Which of the two it is matters to whoever
+               ships this, not to whoever is using it. -->
+          <p v-else-if="appUnpublished || appChecked" class="mb-3 text-xs text-white/40">
+            Up to date.
           </p>
 
           <p v-if="appError" class="mb-3 text-xs leading-relaxed text-state-warn">

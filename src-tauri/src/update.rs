@@ -68,8 +68,11 @@ fn progress(channel: &Channel<InstallEvent>, phase: &str, received: u64, total: 
 }
 
 /// Read an engine release manifest.
+///
+/// Returns None when the feed is simply not there yet, which is the normal state before the
+/// first engine release is published and is not a failure worth colouring red.
 #[tauri::command]
-pub async fn engine_manifest(url: String) -> Result<EngineManifest, String> {
+pub async fn engine_manifest(url: String) -> Result<Option<EngineManifest>, String> {
     let response = reqwest::Client::builder()
         .user_agent("BasiliskStepStudio")
         .build()
@@ -79,16 +82,21 @@ pub async fn engine_manifest(url: String) -> Result<EngineManifest, String> {
         .await
         .map_err(|e| format!("Could not reach the update feed: {e}"))?;
 
-    if !response.status().is_success() {
-        return Err(format!(
-            "The update feed answered {}. If the repository is private, releases are not readable without a token.",
-            response.status().as_u16()
-        ));
+    let status = response.status();
+    if status == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+        return Err("The update feed is not readable. A private repository needs a token.".into());
+    }
+    if !status.is_success() {
+        return Err(format!("The update feed answered {}.", status.as_u16()));
     }
 
     response
         .json::<EngineManifest>()
         .await
+        .map(Some)
         .map_err(|e| format!("The update feed is not readable: {e}"))
 }
 
