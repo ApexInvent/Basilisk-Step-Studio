@@ -1,0 +1,29 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Rust build output, for the desktop shell
+src-tauri/target/
+
+# Local environment
+.env
+.env.local
+
+# OS
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+*.swp
+*~
+
+# The engine binary is fetched or built, never committed.
+# Anchored to the repo root: an unanchored engine/ also matches src/engine/, which
+# silently kept a source file out of the repository and left it unbuildable on clone.
+/engine/
+
+# Tauri build output
+src-tauri/target/
+src-tauri/gen/

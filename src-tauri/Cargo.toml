@@ -1,0 +1,39 @@
+[package]
+name = "basilisk-step-studio"
+version = "0.1.0"
+description = "A Windows interface for the stl2step mesh to B-Rep converter"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "basilisk_step_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Fetching and unpacking an engine build. native-tls resolves to schannel on Windows, so
+# there is no OpenSSL to carry around.
+reqwest = { version = "0.12", default-features = false, features = ["native-tls", "stream", "json"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+
+[profile.release]
+# A desktop tool, not a game: size matters more than the last few percent of speed.
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

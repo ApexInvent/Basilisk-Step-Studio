@@ -1,0 +1,122 @@
+/* Fonts are bundled rather than pulled from a CDN, because this ships as a desktop app
+   and has to render correctly with no network at all. They are imported from main.js
+   rather than here: a CSS @import has to precede every other statement, which would put
+   seven font lines above the Tailwind directives for no benefit. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-ink text-white font-body font-medium antialiased;
+    /* A desktop window, not a document. The app owns its own scroll regions so the
+       window itself must never scroll or the panel layout comes apart. */
+    @apply overflow-hidden;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading uppercase;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-ink;
+  }
+
+  ::selection {
+    @apply bg-accent text-ink;
+  }
+
+  /* Dark scrollbars. The default light ones are jarring against ink. */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-pit;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/15;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-white/25;
+  }
+}
+
+@layer components {
+  /* ---- Type -------------------------------------------------------------- */
+
+  .display {
+    @apply font-heading uppercase leading-[0.9] tracking-[-0.005em];
+  }
+
+  /* A quiet section label. No rule, no index number, it is a label not a feature. */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-white/45;
+  }
+
+  /* Every measured value on screen: dimensions, tolerances, counts, timings.
+     Tabular figures so numbers in a column line up as they change. */
+  .figure {
+    @apply font-mono tabular-nums;
+  }
+
+  /* ---- Controls ---------------------------------------------------------- */
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2.5 px-5 py-2.5
+           font-body text-sm font-semibold transition-colors duration-150
+           disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-ink hover:bg-white disabled:hover:bg-accent;
+  }
+  .btn-ghost {
+    @apply btn border border-white/25 text-white
+           hover:border-accent hover:text-accent disabled:hover:border-white/25 disabled:hover:text-white;
+  }
+  .btn-quiet {
+    @apply btn px-3 py-1.5 text-xs text-white/60 hover:text-accent;
+  }
+
+  /* ---- Form -------------------------------------------------------------- */
+
+  .field-label {
+    @apply mb-2 block text-sm text-white/70;
+  }
+  .field {
+    @apply w-full border border-white/15 bg-pit px-3 py-2 font-body text-sm text-white
+           transition-colors placeholder:text-white/25 focus:border-accent focus:outline-none;
+  }
+  /* Numeric inputs are measurements, so they get the mono face. */
+  input[type='number'].field {
+    @apply font-mono tabular-nums;
+  }
+  select.field {
+    @apply appearance-none bg-pit;
+  }
+  select.field option {
+    @apply bg-ink text-white;
+  }
+
+  /* ---- Structure --------------------------------------------------------- */
+
+  /* Raised panel. A hairline rule rather than a shadow, per the datasheet stance. */
+  .panel {
+    @apply border border-white/10 bg-surface;
+  }
+  .panel-header {
+    @apply flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3;
+  }
+
+  /* Inset well, for the viewport and the command preview. */
+  .well {
+    @apply border border-white/10 bg-pit;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

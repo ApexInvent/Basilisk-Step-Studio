@@ -1,0 +1,295 @@
+# Builds stl2step.exe for Windows.
+#
+# Upstream publishes a macOS app and no Windows binary, so this is where the engine comes
+# from. It runs on demand rather than on push: the repo is private, so Actions minutes are
+# metered, and the engine only changes when the pinned upstream version changes.
+#
+# The one decision worth explaining is where OpenCASCADE comes from. Upstream's own CI
+# builds it from source through vcpkg and warns that a cold cache takes a long time, which
+# is true: OCCT is a very large library. conda-forge publishes a prebuilt win-64 OCCT, so
+# this compiles only stl2step's own sources against it and finishes in minutes instead.
+#
+# The version is pinned exactly. Upstream calibrates its results against a specific OCCT
+# release, so floating this would quietly change the geometry the engine produces.
+
+name: Build engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      stl2step_ref:
+        description: Upstream tag or commit to build
+        required: false
+        default: v1.2.0
+      publish_release:
+        description: Attach the result to a release
+        type: boolean
+        required: false
+        default: false
+
+env:
+  OCCT_VERSION: 7.9.3
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out this repo
+        uses: actions/checkout@v4
+
+      - name: Check out stl2step
+        uses: actions/checkout@v4
+        with:
+          repository: BlinkingSun/stl2step
+          ref: ${{ inputs.stl2step_ref || 'v1.2.0' }}
+          path: upstream
+
+      # Prebuilt OCCT. This is the step that turns an hour long build into a short one.
+      - name: Install OpenCASCADE
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: occt
+          create-args: >-
+            occt=${{ env.OCCT_VERSION }}=novtk*
+            ninja
+          condarc: |
+            channels:
+              - conda-forge
+
+      # Puts the MSVC toolchain on PATH without naming a Visual Studio version. Naming one
+      # is what broke the previous attempt: the runner image had moved on and "Visual
+      # Studio 17 2022" no longer existed, which is a failure that recurs every time the
+      # image is updated. This finds whatever is installed.
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # Everything below runs in `bash -el`, which is the shell the micromamba action
+      # actually initialises. A `cmd` step cannot activate the environment at all, so
+      # CONDA_PREFIX comes back empty and every path built from it points nowhere.
+      - name: Record toolchain
+        shell: bash -el {0}
+        run: |
+          echo "--- compiler ---"
+          cmake --version | head -1
+          echo "cl.exe: $(which cl 2>/dev/null || echo NOT FOUND)"
+          echo "ninja:  $(which ninja 2>/dev/null || echo NOT FOUND)"
+          echo "--- occt package ---"
+          micromamba list -n occt 2>/dev/null | grep -iE "^\s*(occt|opencascade)" || echo "OCCT NOT INSTALLED"
+          echo "--- Standard.hxx ---"
+          find "$CONDA_PREFIX/Library/include" -maxdepth 2 -name Standard.hxx 2>/dev/null | head -2 || true
+          echo "--- toolkits (first 8) ---"
+          ls "$CONDA_PREFIX/Library/lib" 2>/dev/null | grep -E "^TK.*\.lib$" | head -8 || echo "NO TOOLKITS"
+          echo "--- opencascade cmake config ---"
+          find "$CONDA_PREFIX/Library/lib/cmake" -maxdepth 1 -iname "*opencascade*" 2>/dev/null | head -3 || true
+
+      # OpenCASCADE_ROOT is the hint upstream's own FindOpenCASCADE module reads, and it
+      # wants the prefix holding include/ and lib/, which in a conda environment is the
+      # Library subdirectory rather than the environment root.
+      #
+      # The compiler is pinned to cl so that the mingw g++ sitting on the runner's PATH
+      # cannot be selected. conda-forge builds OpenCASCADE with MSVC and the two object
+      # formats cannot be linked together, so picking the wrong one fails at link time
+      # with far less obvious errors than this.
+      - name: Configure
+        shell: bash -el {0}
+        run: |
+          set -euo pipefail
+          occt="$CONDA_PREFIX/Library"
+          cmake -S upstream -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=cl \
+            -DCMAKE_CXX_COMPILER=cl \
+            -DCMAKE_PREFIX_PATH="$occt" \
+            -DOpenCASCADE_ROOT="$occt"
+
+      # Only the CLI target. Upstream's test suite includes a unit test that does not
+      # compile under the MSVC on this runner image (prism_build_test.cpp, a syntax error
+      # the newer compiler rejects), and none of those binaries ship. The thing we do
+      # ship is checked by the smoke test below, against the real converter.
+      - name: Build
+        shell: bash -el {0}
+        run: cmake --build build --target stl2step -j
+
+      # Ship exactly what the binary loads, no more and no less.
+      #
+      # The first attempt copied every TK*.dll plus a hand written list of third party
+      # names. That was wrong twice over: it pulled in visualisation toolkits a command
+      # line converter never touches, and it still missed a dependency, so the exe died
+      # with STATUS_DLL_NOT_FOUND. Guessing does not work here.
+      #
+      # So walk the import table instead. Start at the exe, ask dumpbin what it needs,
+      # resolve each name against the conda environment and the MSVC redistributable,
+      # and repeat over whatever those pull in. What comes out is the closure of real
+      # dependencies. Anything left unresolved is either a Windows system DLL, which is
+      # fine, or a genuine gap, which is reported.
+      - name: Stage the binary and its runtime
+        shell: bash -el {0}
+        run: |
+          set -euo pipefail
+          mkdir -p stage
+
+          exe="$(find build -name 'stl2step.exe' -print -quit)"
+          if [ -z "$exe" ]; then
+            echo "No stl2step.exe was produced"
+            find build -name '*.exe' || true
+            exit 1
+          fi
+          cp "$exe" stage/
+
+          libbin="$CONDA_PREFIX/Library/bin"
+          redist="$(ls -d "$VCToolsRedistDir"/x64/Microsoft.VC*.CRT 2>/dev/null | head -1 || true)"
+          echo "conda bin : $libbin"
+          echo "msvc crt  : ${redist:-none}"
+
+          work="$(mktemp)"; seen="$(mktemp)"; missing="$(mktemp)"
+          echo "stage/stl2step.exe" > "$work"
+
+          while [ -s "$work" ]; do
+            current="$(head -1 "$work")"
+            sed -i '1d' "$work"
+
+            while read -r dep; do
+              [ -z "$dep" ] && continue
+              key="$(printf '%s' "$dep" | tr 'A-Z' 'a-z')"
+              grep -qxF "$key" "$seen" 2>/dev/null && continue
+              echo "$key" >> "$seen"
+
+              if [ -f "$libbin/$dep" ]; then
+                cp -n "$libbin/$dep" stage/
+                echo "stage/$dep" >> "$work"
+              elif [ -n "$redist" ] && [ -f "$redist/$dep" ]; then
+                cp -n "$redist/$dep" stage/
+                echo "stage/$dep" >> "$work"
+              else
+                echo "$dep" >> "$missing"
+              fi
+            done < <(dumpbin -dependents "$current" 2>/dev/null | tr -d '\r' | grep -oiE '[A-Za-z0-9_.+-]+[.]dll')
+          done
+
+          echo "--- not found locally (system DLLs are expected here) ---"
+          sort -u "$missing" || true
+
+          echo "--- staged ---"
+          ls stage | sort
+          echo "files: $(ls stage | wc -l)"
+          du -sh stage
+
+      # The real test of the staging step. Running from a directory with conda off PATH is
+      # the same situation a user's machine is in, so a missing DLL fails here rather than
+      # on first use.
+      - name: Smoke test without conda on PATH
+        shell: pwsh
+        run: |
+          $tri = @()
+          # A tetrahedron: four facets, enough to exercise read, sew and write.
+          $pts = @(
+            @(0,0,0),  @(10,0,0),  @(5,9,0),
+            @(0,0,0),  @(5,9,0),   @(5,3,8),
+            @(0,0,0),  @(5,3,8),   @(10,0,0),
+            @(10,0,0), @(5,3,8),   @(5,9,0)
+          )
+          $ms = New-Object System.IO.MemoryStream
+          $bw = New-Object System.IO.BinaryWriter($ms)
+          $bw.Write((New-Object byte[] 80))
+          $bw.Write([uint32]4)
+          for ($i = 0; $i -lt 12; $i += 3) {
+            $bw.Write([float]0); $bw.Write([float]0); $bw.Write([float]0)
+            foreach ($j in 0..2) {
+              foreach ($k in 0..2) { $bw.Write([float]$pts[$i + $j][$k]) }
+            }
+            $bw.Write([uint16]0)
+          }
+          $bw.Flush()
+          [IO.File]::WriteAllBytes("$PWD\stage\tetra.stl", $ms.ToArray())
+
+          Push-Location stage
+          # Deliberately minimal PATH: this is what a user's machine looks like.
+          $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot"
+          .\stl2step.exe tetra.stl -o tetra.step
+          $code = $LASTEXITCODE
+          Write-Host "exit code: $code"
+          if ($code -ne 0 -and $code -ne 2) { throw "Conversion failed with $code" }
+          if (-not (Test-Path tetra.step)) { throw "No STEP file was written" }
+          Write-Host "--- head of tetra.step ---"
+          Get-Content tetra.step -TotalCount 8
+          Remove-Item tetra.stl, tetra.step
+          Pop-Location
+
+      - name: Record what was built
+        shell: bash -el {0}
+        run: |
+          REF="${{ inputs.stl2step_ref || 'v1.2.0' }}"
+          VERSION="${REF#v}"
+          BUILT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "ENGINE_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "ENGINE_BUILT=$BUILT" >> "$GITHUB_ENV"
+
+          cat > stage/ENGINE.txt <<TXT
+          stl2step for Windows x64
+          upstream ref : $REF
+          OpenCASCADE  : ${{ env.OCCT_VERSION }}
+          built        : $BUILT
+
+          Keep the DLLs beside stl2step.exe. They are the OpenCASCADE runtime and
+          the binary will not start without them.
+          TXT
+
+          # The same facts in a form the app can read. Upstream documents no --version flag,
+          # so without this the Engine screen has nothing but a filename to report.
+          cat > stage/engine.json <<JSON
+          {
+            "version": "$VERSION",
+            "occt": "${{ env.OCCT_VERSION }}",
+            "built": "$BUILT",
+            "source": "bundled"
+          }
+          JSON
+
+          cat stage/ENGINE.txt
+          cat stage/engine.json
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: stl2step-windows-x64
+          path: stage/
+          if-no-files-found: error
+
+      - name: Publish release
+        if: ${{ inputs.publish_release }}
+        shell: bash -el {0}
+        run: |
+          REF="${{ inputs.stl2step_ref || 'v1.2.0' }}"
+          cd stage && 7z a ../stl2step-windows-x64.zip . && cd ..
+
+          # The update feed points at a rolling tag rather than a versioned one, so the URL
+          # baked into the app never has to change when the engine does.
+          SHA=$(sha256sum stl2step-windows-x64.zip | cut -d" " -f1)
+          SIZE=$(stat -c%s stl2step-windows-x64.zip)
+          BASE="https://github.com/${{ github.repository }}/releases/download/engine-latest"
+
+          cat > engine.json <<JSON
+          {
+            "version": "$ENGINE_VERSION",
+            "occt": "${{ env.OCCT_VERSION }}",
+            "built": "$ENGINE_BUILT",
+            "url": "$BASE/stl2step-windows-x64.zip",
+            "sha256": "$SHA",
+            "size": $SIZE,
+            "notes": "stl2step $REF, built against OpenCASCADE ${{ env.OCCT_VERSION }}."
+          }
+          JSON
+          cat engine.json
+
+          NOTES="Built against OpenCASCADE ${{ env.OCCT_VERSION }}. Unzip and keep the DLLs beside the exe."
+
+          # A versioned release for the record, so an older engine stays fetchable.
+          gh release create "engine-$REF" stl2step-windows-x64.zip --title "stl2step $REF for Windows" --notes "$NOTES" || gh release upload "engine-$REF" stl2step-windows-x64.zip --clobber
+
+          # And the rolling one the app reads. Uploading over this is what ships an update.
+          gh release create engine-latest stl2step-windows-x64.zip engine.json --title "Current engine build" --notes "$NOTES" || gh release upload engine-latest stl2step-windows-x64.zip engine.json --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

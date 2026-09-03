@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Basilisk Step Studio",
+  "version": "0.1.0",
+  "identifier": "za.co.apexinvent.basiliskstepstudio",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Basilisk Step Studio",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 640,
+        "resizable": true,
+        "center": true,
+        "theme": "Dark",
+        "backgroundColor": "#1F1F21"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/ApexInvent/Basilisk-Step-Studio/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdCQzkzODIzNkFFQ0Y3MkUKUldRdTkreHFJempKZTIrNFdiUmRnMkw3OVJTUkdPbWMrdG9SWWd3aVRuQjV3dFY1S2h0bU5KK2UK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "publisher": "Apex Invent",
+    "copyright": "Apex Invent",
+    "category": "DeveloperTool",
+    "shortDescription": "STL mesh to STEP B-Rep solid",
+    "longDescription": "Converts STL meshes into STEP B-Rep solids using the stl2step engine, with a batch queue and a 3D viewer for checking the result.",
+    "resources": {
+      "../engine": "engine"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}
