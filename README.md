@@ -38,6 +38,8 @@ The app keeps itself up to date, and the engine updates separately from the Engi
 
 Files can be queued and converted one after another, for the cases where thirty or forty parts need converting and running the same command per file is not practical. A failed conversion is marked and the queue continues.
 
+![Batch Conversion](images/queue.png)
+
 ### 3D viewer
 
 The viewer shows both the STL going in and the converted result. For STEP results the engine's B-Rep edges are drawn over the shaded model, which is what separates a recovered analytic surface from a re-triangulated one.
