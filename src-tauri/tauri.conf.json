@@ -49,12 +49,16 @@
       "icons/icon.ico"
     ],
     "publisher": "Apex Invent",
-    "copyright": "Apex Invent",
+    "copyright": "Copyright (C) 2026 Apex Invent",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../LICENSE",
     "category": "DeveloperTool",
     "shortDescription": "STL mesh to STEP B-Rep solid",
     "longDescription": "Converts STL meshes into STEP B-Rep solids using the stl2step engine, with a batch queue and a 3D viewer for checking the result.",
     "resources": {
-      "../engine": "engine"
+      "../engine": "engine",
+      "../LICENSE": "LICENSE",
+      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
     },
     "windows": {
       "nsis": {

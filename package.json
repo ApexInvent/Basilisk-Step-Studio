@@ -2,6 +2,7 @@
   "name": "basilisk-step-studio",
   "version": "0.1.0",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "description": "A Windows interface for the stl2step mesh to B-Rep converter.",
   "scripts": {

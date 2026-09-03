@@ -127,3 +127,13 @@ cd src-tauri && cargo test
 All STL-to-STEP conversion is performed by [stl2step](https://github.com/BlinkingSun/stl2step), created by BlinkingSun and built on [OpenCASCADE](https://dev.opencascade.org/).
 
 Basilisk Step Studio provides the Windows interface, queue, viewer and integration around it. The geometry conversion itself belongs entirely to the upstream project.
+
+---
+
+## Licence
+
+Basilisk Step Studio is free software under the [GNU General Public License v3](LICENSE) or later. You may use, study, modify and redistribute it, and anything you distribute that is built from it must carry the same freedoms.
+
+stl2step itself is MIT. OpenCASCADE, the geometry kernel the engine links against, is LGPL 2.1 with the Open CASCADE exception, and the installer redistributes it. What ships and under what terms is set out in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+The Basilisk Step Studio name, logo and icon are trademarks of Apex Invent and are not covered by that grant. Forks are welcome to the code and should use their own name.
