@@ -54,6 +54,8 @@ The generated stl2step command is always visible, and changing an option updates
 
 The idea is not to hide the CLI, only to make it easier to reach.
 
+![Command Line](images/command.png)
+
 ---
 
 ## Building it yourself
