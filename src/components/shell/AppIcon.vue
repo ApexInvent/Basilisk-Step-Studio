@@ -30,7 +30,9 @@ const PATHS = {
   chevron: 'M9 5l7 7-7 7',
   terminal: 'M4 5h16v14H4zM7 9l3 3-3 3M13 15h4',
   plus: 'M12 5v14M5 12h14',
-  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13'
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+  about: 'M4 4h16v16H4zM12 10v7M12 7.5v.5',
+  link: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6'
 }
 
 const path = (name) => PATHS[name] ?? PATHS.file

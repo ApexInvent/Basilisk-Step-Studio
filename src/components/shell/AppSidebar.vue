@@ -17,7 +17,8 @@ const { counts } = storeToRefs(jobs)
 const NAV = [
   { to: '/', icon: 'convert', label: 'Convert', hint: 'Queue files, run them, inspect the result' },
   { to: '/engine', icon: 'engine', label: 'Engine', hint: 'Where stl2step lives' },
-  { to: '/settings', icon: 'settings', label: 'Settings', hint: 'Output paths and defaults' }
+  { to: '/settings', icon: 'settings', label: 'Settings', hint: 'Output paths and defaults' },
+  { to: '/about', icon: 'about', label: 'About', hint: 'Versions, credits and licence' }
 ]
 
 const isActive = (to) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
