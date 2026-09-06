@@ -11,7 +11,7 @@ All you need to do is run the installer and use it.
 Want to support my work?
 </p>
  <p align="center">
-  <a href="https://www.buymeacoffee.com/apexinvent">
+   <a href="https://buymeacoffee.com/domtursini">
     <img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95%EF%B8%8F&slug=apexinvent&button_colour=30BFFF&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00" />
   </a>
 </p>
